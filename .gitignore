@@ -1,0 +1,13 @@
+# build output
+/lootlist
+/llc
+
+# runtime data (never commit your loot db)
+/data/
+*.db
+*.db-shm
+*.db-wal
+
+# misc
+/tmp/
+*.log

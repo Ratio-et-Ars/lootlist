@@ -1,0 +1,10 @@
+services:
+  lootlist:
+    build: .
+    image: lootlist:latest
+    container_name: lootlist
+    restart: unless-stopped
+    ports:
+      - "8088:8080"   # host:container — point Caddy at <host-ip>:8088
+    volumes:
+      - ./data:/data  # SQLite lives here; back this up

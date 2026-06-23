@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>LootList</title>
+<script>const whTooltips = {colorLinks:true, iconizeLinks:true, renderForms:false};</script>
+<script src="https://wow.zamimg.com/widgets/power.js"></script>
+<style>
+  :root{
+    --bg:#16131c; --panel:#211b2c; --panel2:#2b2338; --line:#3a3048;
+    --txt:#ece6f5; --dim:#9a8fb0; --gold:#f0c95a; --epic:#a335ee; --epic2:#c77dff;
+    --good:#4caf72; --warn:#e0843c;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font:15px/1.45 system-ui,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--txt)}
+  a{color:var(--epic2);text-decoration:none}
+  header{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:12px 16px;background:linear-gradient(180deg,#2a2138,#1d1727);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}
+  header h1{font-size:18px;margin:0;color:var(--gold);letter-spacing:.5px}
+  select,input,button,textarea{font:inherit;color:var(--txt);background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:7px 10px}
+  button{cursor:pointer}
+  button:hover{border-color:var(--epic)}
+  .badge{background:#3a2a12;border:1px solid var(--gold);color:var(--gold);border-radius:20px;padding:3px 11px;font-size:13px;font-weight:600}
+  .spacer{margin-left:auto}
+  #progBtn.active{background:var(--epic);border-color:var(--epic);color:#fff}
+  #raidToggle{font-weight:700;letter-spacing:.5px;border-color:var(--gold);color:var(--gold)}
+  #raidToggle.active{background:var(--gold);border-color:var(--gold);color:#1d1727}
+  main{max-width:880px;margin:0 auto;padding:16px}
+  h2.sec{font-size:14px;letter-spacing:1px;text-transform:uppercase;color:var(--epic2);margin:24px 0 4px;border-bottom:1px solid var(--line);padding-bottom:5px}
+  h2.sec:first-child{margin-top:6px}
+  .boss{margin:16px 0 6px;color:var(--gold);font-weight:700;font-size:13px;text-transform:uppercase;letter-spacing:1px}
+  .row{display:flex;gap:10px;align-items:center;padding:9px 10px;background:var(--panel);border:1px solid var(--line);border-radius:10px;margin:6px 0}
+  .row.got{opacity:.45}
+  .row .name{flex:1;min-width:0}
+  .row .name .slot{color:var(--dim);font-size:12px}
+  .star{font-size:20px;background:none;border:none;padding:0 4px;color:#5a4f6e}
+  .star.on{color:var(--gold)}
+  .pri{font-size:11px;border-radius:6px;padding:2px 7px;border:1px solid var(--line)}
+  .pri1{color:#ff6b6b;border-color:#5a2a2a}.pri2{color:var(--gold);border-color:#5a4a2a}.pri3{color:var(--dim)}
+  .mini{padding:4px 8px;font-size:12px;background:var(--panel2)}
+  .note{color:var(--dim);font-size:12.5px;margin-top:2px}
+  .sr-card{margin:8px 0 4px;background:linear-gradient(180deg,#241a16,#1d1812);border:1px solid var(--gold);border-radius:12px;padding:14px 16px}
+  .sr-card h3{margin:0 0 8px;color:var(--gold);font-size:14px;letter-spacing:1px;text-transform:uppercase}
+  .sr-card .pick{font-size:16px;padding:3px 0}
+  .sr-count{float:right;color:var(--dim);font-weight:400}
+  .over{color:var(--warn)}
+  .muted{color:var(--dim);font-size:13px}
+  .search{width:100%;margin:6px 0 2px}
+  .chips{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0 4px}
+  .chip{font-size:12px;padding:4px 13px;border-radius:20px;background:var(--panel2);text-transform:capitalize}
+  .chip.active{background:var(--epic);border-color:var(--epic);color:#fff}
+  .row.clk{cursor:pointer}
+  .row.clk:hover{border-color:var(--epic);background:var(--panel2)}
+  .row.owned{border-color:var(--good)}
+  .wh{font-size:13px;color:var(--epic2);padding:0 4px;border:none;background:none}
+  .wh:hover{border:none}
+  .tick{color:var(--good);font-weight:700;font-size:17px}
+  .plus{color:var(--dim);font-size:17px}
+  .prog{display:flex;gap:10px;align-items:flex-start;padding:9px 10px;background:var(--panel);border:1px solid var(--line);border-radius:10px;margin:6px 0}
+  .prog .k{color:var(--gold);font-weight:600;min-width:210px}
+  .prog .v{flex:1}
+  /* RAID MODE: big & simple */
+  body.big main{max-width:760px}
+  body.big .row{padding:16px 14px;font-size:21px;gap:16px;margin:9px 0}
+  body.big .star{font-size:32px}
+  body.big .name .slot{font-size:15px}
+  body.big .boss{font-size:17px;margin-top:22px}
+  body.big .sr-card{padding:20px}
+  body.big .sr-card h3{font-size:18px}
+  body.big .sr-card .pick{font-size:26px;padding:6px 0}
+  body.big .mini{font-size:17px;padding:9px 16px}
+</style>
+</head>
+<body>
+<header>
+  <h1>⚔ LootList</h1>
+  <select id="raidSel"></select>
+  <span class="badge" id="plusone">+1: 0</span>
+  <span class="spacer"></span>
+  <button id="progBtn">Progress</button>
+  <button id="raidToggle">⚔ RAID MODE</button>
+</header>
+<main id="app"></main>
+
+<script>
+const $ = s => document.querySelector(s);
+let items=[], stats={}, progress=[], catalog=[],
+    raid = localStorage.raid || "Karazhan",
+    mode = "manage",            // manage | raid | progress
+    browseFilter = "all", browseQuery = "";
+
+const RAIDS = ["Karazhan","Gruul's Lair","Magtheridon's Lair","Serpentshrine Cavern","Tempest Keep","Hyjal Summit","Black Temple","Zul'Aman","Sunwell Plateau"];
+const api = (m,u,b)=>fetch(u,{method:m,headers:{'Content-Type':'application/json'},body:b?JSON.stringify(b):undefined}).then(r=>r.json());
+const esc = s => (s||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+// Wowhead link ONLY for the hover tooltip + quality color + icon (power.js).
+// preventDefault kills navigation; the click bubbles up so the ROW toggles wishlist.
+function whLink(it){
+  if(it.wowhead_id>0) return `<a href="https://www.wowhead.com/tbc/item=${it.wowhead_id}" data-wowhead="item=${it.wowhead_id}&domain=tbc" onclick="event.preventDefault()">${esc(it.name)}</a>`;
+  return esc(it.name);
+}
+function byBoss(list){ const g={}; list.forEach(i=>{(g[i.boss||"—"] ||= []).push(i)}); return g; }
+function wh(){ if(window.$WowheadPower) window.$WowheadPower.refreshLinks(); }
+
+async function fetchData(){
+  [items, stats, progress, catalog] = await Promise.all([
+    api('GET','/api/items'), api('GET','/api/stats'), api('GET','/api/progress'), api('GET','/api/catalog')]);
+}
+async function load(){ await fetchData(); render(); }
+
+function raidSelect(){
+  const set = new Set([...RAIDS, ...items.map(i=>i.raid), ...catalog.map(c=>c.raid)]);
+  $("#raidSel").innerHTML = [...set].map(r=>`<option ${r===raid?'selected':''}>${esc(r)}</option>`).join("");
+}
+
+function render(){
+  raidSelect();
+  $("#plusone").textContent = "+1 ("+raid.split(" ")[0]+"): " + (stats[raid]||0);
+  document.body.classList.toggle("big", mode==="raid");
+  $("#raidToggle").classList.toggle("active", mode==="raid");
+  $("#progBtn").classList.toggle("active", mode==="progress");
+  if(mode==="raid") renderRaid();
+  else if(mode==="progress") renderProgress();
+  else renderManage();
+  wh();
+}
+
+/* ---- RAID MODE: big, simple, for the raid only ---- */
+function renderRaid(){
+  const list = items.filter(i=>i.raid===raid && i.status!=="got");
+  const reserved = list.filter(i=>i.reserved);
+  const over = reserved.length>2;
+  let h = `<div class="sr-card"><h3>Tonight's SR <span class="sr-count ${over?'over':''}">${reserved.length}/2 ${over?'⚠ over!':''}</span></h3>`;
+  h += reserved.length ? reserved.map(i=>`<div class="pick">★ ${whLink(i)}</div>`).join("") : '<div class="muted">No reserves — tap a ★ below.</div>';
+  if(reserved.length) h += `<button class="mini" style="margin-top:12px" onclick="clearSR()">clear</button>`;
+  h += `</div>`;
+  const g = byBoss(list);
+  for(const boss of Object.keys(g)){
+    h += `<div class="boss">${esc(boss)}</div>`;
+    for(const it of g[boss]){
+      h += `<div class="row">
+        <button class="star ${it.reserved?'on':''}" onclick="toggleSR(${it.id},${!it.reserved})">★</button>
+        <div class="name">${whLink(it)} <span class="slot">${esc(it.slot)}</span></div>
+        <button class="mini" onclick="markGot(${it.id})">got</button></div>`;
+    }
+  }
+  if(!list.length) h += `<p class="muted">Nothing wishlisted for ${esc(raid)}. Flip off Raid Mode to add some.</p>`;
+  $("#app").innerHTML = h;
+}
+
+/* ---- MANAGE: wishlist on top, browse catalog below ---- */
+function renderManage(){
+  const mine = items.filter(i=>i.raid===raid);
+  let h = `<h2 class="sec">★ Your Wishlist — ${esc(raid)}</h2>`;
+  if(!mine.length) h += `<p class="muted">Nothing yet — add from the catalog below.</p>`;
+  else {
+    const g = byBoss(mine);
+    for(const boss of Object.keys(g)){
+      h += `<div class="boss">${esc(boss)}</div>`;
+      for(const it of g[boss]){
+        h += `<div class="row ${it.status==='got'?'got':''}">
+          <button class="star ${it.reserved?'on':''}" onclick="toggleSR(${it.id},${!it.reserved})" title="reserve">★</button>
+          <div class="name">${whLink(it)} <span class="slot">${esc(it.slot)}</span>${it.note?`<div class="note">${esc(it.note)}</div>`:""}</div>
+          <span class="pri pri${it.priority}">P${it.priority}</span>
+          ${it.status==='got'?'<span class="muted">got ✓</span>':`<button class="mini" onclick="markGot(${it.id})">got</button>`}
+          <button class="mini" onclick="delItem(${it.id})">✕</button></div>`;
+      }
+    }
+  }
+  h += `<h2 class="sec">Browse — ${esc(raid)}</h2>`;
+  h += `<input class="search" id="q" placeholder="search this raid…" value="${esc(browseQuery)}" oninput="browseSearch(this.value)">`;
+  h += `<div id="browseArea"></div>`;
+  $("#app").innerHTML = h;
+  paintBrowse();
+}
+
+function browseHTML(){
+  const forRaid = catalog.filter(c=>c.raid===raid);
+  const tagset = new Set();
+  forRaid.forEach(c=>(c.tags||"").split(",").forEach(t=>{t=t.trim(); if(t)tagset.add(t)}));
+  const chips = ["all", ...[...tagset].sort()];
+  let h = `<div class="chips">`+chips.map(t=>`<button class="chip ${t===browseFilter?'active':''}" onclick="setFilter('${t}')">${t}</button>`).join("")+`</div>`;
+  const q = browseQuery.trim().toLowerCase();
+  const have = new Set(items.map(i=>i.raid+'|'+i.name));
+  const shown = forRaid.filter(c =>
+    (browseFilter==="all" || (c.tags||"").split(",").map(s=>s.trim()).includes(browseFilter)) &&
+    (!q || c.name.toLowerCase().includes(q)));
+  const g = byBoss(shown);
+  for(const boss of Object.keys(g)){
+    h += `<div class="boss">${esc(boss)}</div>`;
+    for(const c of g[boss]){
+      const owned = have.has(c.raid+'|'+c.name);
+      h += `<div class="row clk ${owned?'owned':''}" data-key="${esc(c.raid+'|'+c.name)}" onclick='toggleWish(${JSON.stringify(c).replace(/'/g,"&#39;")})' title="${owned?'click to remove':'click to wishlist'}">
+        <div class="name">${whLink(c)} <span class="slot">${esc(c.slot)}</span></div>
+        ${owned?'<span class="tick">✓</span>':'<span class="plus">＋</span>'}</div>`;
+    }
+  }
+  if(!shown.length) h += `<p class="muted">No matching items in the catalog for ${esc(raid)}.</p>`;
+  return h;
+}
+function paintBrowse(){ const el=$("#browseArea"); if(el){ el.innerHTML=browseHTML(); wh(); } }
+function setFilter(t){ browseFilter=t; paintBrowse(); }
+function browseSearch(v){ browseQuery=v; paintBrowse(); }
+
+function renderProgress(){
+  let h = `<h2 class="sec">Attunement / Rep / Notes</h2><p class="muted">Your single source of truth — I update these from the console too.</p>`;
+  for(const p of progress) h += `<div class="prog"><div class="k">${esc(p.key)}</div><div class="v">${esc(p.value)}</div></div>`;
+  if(!progress.length) h += `<p class="muted">No progress notes yet.</p>`;
+  $("#app").innerHTML = h;
+}
+
+async function toggleSR(id,on){ await api('PATCH','/api/items/'+id,{reserved:on}); await load(); }
+async function markGot(id){ await api('POST','/api/items/'+id+'/got'); await load(); }
+async function delItem(id){ if(confirm('Delete?')){ await api('DELETE','/api/items/'+id); await load(); } }
+async function clearSR(){ await api('POST','/api/reserves/clear?raid='+encodeURIComponent(raid)); await load(); }
+async function toggleWish(c){
+  // anchor the clicked row's viewport position so the page doesn't jump
+  // when the wishlist section above changes height.
+  const sel = `[data-key="${CSS.escape(c.raid+'|'+c.name)}"]`;
+  const node = document.querySelector(sel);
+  const before = node ? node.getBoundingClientRect().top : null;
+  const ex = items.find(i=>i.raid===c.raid && i.name===c.name);
+  if(ex) await api('DELETE','/api/items/'+ex.id);
+  else await api('POST','/api/items',{raid:c.raid,boss:c.boss,name:c.name,slot:c.slot,wowhead_id:c.wowhead_id,priority:2});
+  await fetchData(); render();
+  const n2 = document.querySelector(sel);
+  if(before!=null && n2) window.scrollBy(0, n2.getBoundingClientRect().top - before);
+}
+
+$("#raidSel").addEventListener("change", e=>{ raid=e.target.value; localStorage.raid=raid; render(); });
+$("#raidToggle").addEventListener("click", ()=>{ mode = mode==="raid" ? "manage" : "raid"; render(); });
+$("#progBtn").addEventListener("click", ()=>{ mode = mode==="progress" ? "manage" : "progress"; render(); });
+load();
+</script>
+</body>
+</html>
