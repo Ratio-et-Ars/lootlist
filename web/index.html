@@ -57,8 +57,10 @@
   .tick{color:var(--good);font-weight:700;font-size:17px}
   .plus{color:var(--dim);font-size:17px}
   .prog{display:flex;gap:10px;align-items:flex-start;padding:9px 10px;background:var(--panel);border:1px solid var(--line);border-radius:10px;margin:6px 0}
-  .prog .k{color:var(--gold);font-weight:600;min-width:210px}
+  .prog .k{color:var(--gold);font-weight:600;min-width:210px;flex:0 0 210px}
   .prog .v{flex:1}
+  .prog .pv{flex:1;min-width:0}
+  .prog.addrow{margin-top:16px;border-style:dashed}
   /* RAID MODE: big & simple */
   body.big main{max-width:760px}
   body.big .row{padding:16px 14px;font-size:21px;gap:16px;margin:9px 0}
@@ -202,10 +204,32 @@ function setFilter(t){ browseFilter=t; paintBrowse(); }
 function browseSearch(v){ browseQuery=v; paintBrowse(); }
 
 function renderProgress(){
-  let h = `<h2 class="sec">Attunement / Rep / Notes</h2><p class="muted">Your single source of truth — I update these from the console too.</p>`;
-  for(const p of progress) h += `<div class="prog"><div class="k">${esc(p.key)}</div><div class="v">${esc(p.value)}</div></div>`;
-  if(!progress.length) h += `<p class="muted">No progress notes yet.</p>`;
+  let h = `<h2 class="sec">Attunement / Rep / Notes</h2><p class="muted">Edit a value and click away to save. ✕ deletes. (I can still update these from the console too.)</p>`;
+  for(const p of progress){
+    const kj = JSON.stringify(p.key).replace(/'/g,"&#39;");
+    h += `<div class="prog">
+      <div class="k">${esc(p.key)}</div>
+      <input class="pv" value="${esc(p.value)}" onchange='saveProgress(${kj}, this.value)'>
+      <button class="mini" onclick='delProgress(${kj})' title="delete">✕</button>
+    </div>`;
+  }
+  h += `<div class="prog addrow">
+      <input id="npk" class="pv" style="flex:0 0 210px" placeholder="new label (e.g. Hyjal attune)">
+      <input id="npv" class="pv" placeholder="status / note" onkeydown="if(event.key==='Enter')addProgress()">
+      <button class="mini" onclick="addProgress()">add</button>
+    </div>`;
   $("#app").innerHTML = h;
+}
+async function saveProgress(key,val){
+  await api('PUT','/api/progress/'+encodeURIComponent(key),{value:val});
+  const p = progress.find(x=>x.key===key); if(p) p.value=val;
+}
+async function delProgress(key){ if(confirm('Delete "'+key+'"?')){ await api('DELETE','/api/progress/'+encodeURIComponent(key)); await load(); } }
+async function addProgress(){
+  const k=$("#npk").value.trim(), v=$("#npv").value.trim();
+  if(!k) return;
+  await api('PUT','/api/progress/'+encodeURIComponent(k),{value:v});
+  await load();
 }
 
 async function toggleSR(id,on){ await api('PATCH','/api/items/'+id,{reserved:on}); await load(); }
