@@ -57,6 +57,9 @@
   .row.owned{border-color:var(--good)}
   .wh{font-size:13px;color:var(--epic2);padding:0 4px;border:none;background:none}
   .wh:hover{border:none}
+  .whout{flex:0 0 auto;color:var(--dim);font-size:15px;line-height:1;padding:0 6px;border:none;background:none}
+  .whout:hover{color:var(--epic2)}
+  body.big .whout{font-size:24px;padding:0 10px}
   .tick{color:var(--good);font-weight:700;font-size:17px}
   .plus{color:var(--dim);font-size:17px}
   .prog{display:flex;gap:10px;align-items:flex-start;padding:9px 10px;background:var(--panel);border:1px solid var(--line);border-radius:10px;margin:6px 0}
@@ -105,6 +108,12 @@ function whLink(it){
   if(it.wowhead_id>0) return `<a href="https://www.wowhead.com/tbc/item=${it.wowhead_id}" data-wowhead="item=${it.wowhead_id}&domain=tbc" onclick="event.preventDefault()">${esc(it.name)}</a>`;
   return esc(it.name);
 }
+// small out-link to Wowhead on the right of a row. stopPropagation so it
+// opens in a new tab instead of toggling the row's wishlist state.
+function whIcon(id){
+  if(!(id>0)) return "";
+  return `<a class="whout" href="https://www.wowhead.com/tbc/item=${id}" target="_blank" rel="noopener" onclick="event.stopPropagation()" title="Open on Wowhead">↗</a>`;
+}
 function byBoss(list){ const g={}; list.forEach(i=>{(g[i.boss||"—"] ||= []).push(i)}); return g; }
 function wh(){ if(window.$WowheadPower) window.$WowheadPower.refreshLinks(); }
 
@@ -147,6 +156,7 @@ function renderRaid(){
       h += `<div class="row">
         <button class="star ${it.reserved?'on':''}" onclick="toggleSR(${it.id},${!it.reserved})">★</button>
         <div class="name">${whLink(it)} <span class="slot">${esc(it.slot)}</span></div>
+        ${whIcon(it.wowhead_id)}
         <button class="mini" onclick="markGot(${it.id})">got</button></div>`;
     }
   }
@@ -168,6 +178,7 @@ function renderManage(){
           <button class="star ${it.reserved?'on':''}" onclick="toggleSR(${it.id},${!it.reserved})" title="reserve">★</button>
           <div class="name">${whLink(it)} <span class="slot">${esc(it.slot)}</span>${it.note?`<div class="note">${esc(it.note)}</div>`:""}</div>
           <span class="pri pri${it.priority}">P${it.priority}</span>
+          ${whIcon(it.wowhead_id)}
           ${it.status==='got'?'<span class="muted">got ✓</span>':`<button class="mini" onclick="markGot(${it.id})">got</button>`}
           <button class="mini" onclick="delItem(${it.id})">✕</button></div>`;
       }
@@ -223,6 +234,7 @@ function browseHTML(){
       const owned = have.has(c.raid+'|'+c.name);
       h += `<div class="row clk ${owned?'owned':''}" data-key="${esc(c.raid+'|'+c.name)}" onclick='toggleWish(${JSON.stringify(c).replace(/'/g,"&#39;")})' title="${owned?'click to remove':'click to wishlist'}">
         <div class="name">${whLink(c)} <span class="slot">${esc(c.slot)}</span></div>
+        ${whIcon(c.wowhead_id)}
         ${owned?'<span class="tick">✓</span>':'<span class="plus">＋</span>'}</div>`;
     }
   }
