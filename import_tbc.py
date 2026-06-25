@@ -59,9 +59,10 @@ def build_dict(csv_text):
         if caster:
             tags.add("caster")
             # a mage wants: cloth caster armor, OR any caster non-armor
-            # (weapon/wand/trinket/ring/neck/cloak/off-hand)
+            # (weapon/wand/trinket/ring/neck/cloak/off-hand) — but NOT a
+            # shield, which mages cannot equip.
             armor_slots = {"Head", "Shoulder", "Chest", "Wrist", "Hands", "Waist", "Legs", "Feet"}
-            if slot not in armor_slots or cloth:
+            if (slot not in armor_slots or cloth) and slot != "Shield":
                 tags.add("mage")
         d[iid] = (name, quality, slot, ",".join(sorted(tags)))
     return d

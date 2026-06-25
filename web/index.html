@@ -49,6 +49,9 @@
   .chips{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0 4px}
   .chip{font-size:12px;padding:4px 13px;border-radius:20px;background:var(--panel2);text-transform:capitalize}
   .chip.active{background:var(--epic);border-color:var(--epic);color:#fff}
+  .chips.types{margin-top:0}
+  .chips.types .chip{background:#241d30;color:var(--dim)}
+  .chips.types .chip.active{background:var(--epic2);border-color:var(--epic2);color:#1d1727}
   .row.clk{cursor:pointer}
   .row.clk:hover{border-color:var(--epic);background:var(--panel2)}
   .row.owned{border-color:var(--good)}
@@ -175,17 +178,38 @@ function renderManage(){
   paintBrowse();
 }
 
+// map a raw equip slot to a coarse "type" we can filter on (trinket, weapon, …)
+const SLOTCAT = {
+  "Trinket":"trinket","Finger":"ring","Neck":"neck","Back":"cloak","Wand":"wand",
+  "Shield":"shield","Held In Off-hand":"off-hand","Off Hand":"off-hand",
+  "Main Hand":"weapon","One-Hand":"weapon","Two-Hand":"weapon",
+  "Ranged":"ranged","Thrown":"ranged","Relic":"relic",
+  "Head":"head","Shoulder":"shoulder","Chest":"chest","Wrist":"wrist",
+  "Hands":"hands","Waist":"waist","Legs":"legs","Feet":"feet"
+};
+const slotCat = s => SLOTCAT[s] || "";
+const chipBtn = t => `<button class="chip ${t===browseFilter?'active':''}" onclick="setFilter('${t}')">${t}</button>`;
+function matchFilter(c){
+  if(browseFilter==="all") return true;
+  const tags = (c.tags||"").split(",").map(s=>s.trim());
+  // mages can't equip shields — never surface them under the mage filter
+  if(browseFilter==="mage") return tags.includes("mage") && slotCat(c.slot)!=="shield";
+  return tags.includes(browseFilter) || slotCat(c.slot)===browseFilter;
+}
 function browseHTML(){
   const forRaid = catalog.filter(c=>c.raid===raid);
-  const tagset = new Set();
-  forRaid.forEach(c=>(c.tags||"").split(",").forEach(t=>{t=t.trim(); if(t)tagset.add(t)}));
-  const chips = ["all", ...[...tagset].sort()];
-  let h = `<div class="chips">`+chips.map(t=>`<button class="chip ${t===browseFilter?'active':''}" onclick="setFilter('${t}')">${t}</button>`).join("")+`</div>`;
+  const tagset = new Set(), typeset = new Set();
+  forRaid.forEach(c=>{
+    (c.tags||"").split(",").forEach(t=>{t=t.trim(); if(t)tagset.add(t)});
+    const sc = slotCat(c.slot); if(sc) typeset.add(sc);
+  });
+  const tagChips = ["all", ...[...tagset].sort()];
+  let h = `<div class="chips">`+tagChips.map(chipBtn).join("")+`</div>`;
+  const typeChips = [...typeset].sort();
+  if(typeChips.length) h += `<div class="chips types">`+typeChips.map(chipBtn).join("")+`</div>`;
   const q = browseQuery.trim().toLowerCase();
   const have = new Set(items.map(i=>i.raid+'|'+i.name));
-  const shown = forRaid.filter(c =>
-    (browseFilter==="all" || (c.tags||"").split(",").map(s=>s.trim()).includes(browseFilter)) &&
-    (!q || c.name.toLowerCase().includes(q)));
+  const shown = forRaid.filter(c => matchFilter(c) && (!q || c.name.toLowerCase().includes(q)));
   const g = byBoss(shown);
   for(const boss of Object.keys(g)){
     h += `<div class="boss">${esc(boss)}</div>`;
