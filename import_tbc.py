@@ -20,6 +20,8 @@ SLOTS = ("Head","Neck","Shoulder","Back","Chest","Wrist","Hands","Waist","Legs",
          "Ranged","Wand","Relic","Held In Off-hand","Thrown","Shield")
 
 ARMOR_SLOTS = {"Head", "Shoulder", "Chest", "Wrist", "Hands", "Waist", "Legs", "Feet"}
+CLASSES = {"warrior", "paladin", "hunter", "rogue", "priest", "death knight",
+           "shaman", "mage", "warlock", "druid"}
 
 def mage_usable(slot, tip, cloth):
     """A caster item a MAGE can actually equip. Mages wear only cloth and
@@ -72,19 +74,24 @@ def build_dict(csv_text):
         elif ">Wand<" in tip:
             slot = "Wand"
         tags = set()
+        restricted = set()        # explicit "Classes:" restriction, if any
         cm = re.search(r"Classes:\s*(.*?)(?:</td>|<br|</span></?(?:td|tr))", tip)
         if cm:
             for c in re.sub(r"<[^>]+>", "", cm.group(1)).split(","):
                 c = c.strip().lower()
                 if c:
                     tags.add(c)
+                    if c in CLASSES:
+                        restricted.add(c)
         caster = any(k in tip for k in ("Intellect", "Spell Damage", "Spell Power",
                      "damage and healing", "Damage and Healing", "Spell Hit",
                      "Spell Critical", "Mana per 5", "mana per 5", "Healing Spells"))
         cloth = ">Cloth<" in tip
         if caster:
             tags.add("caster")
-            if mage_usable(slot, tip, cloth):
+            # honor explicit class restrictions: a Paladin-only caster trinket
+            # is not a mage item, even though a mage could use the slot.
+            if mage_usable(slot, tip, cloth) and (not restricted or "mage" in restricted):
                 tags.add("mage")
         d[iid] = (name, quality, slot, ",".join(sorted(tags)))
     return d
