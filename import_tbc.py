@@ -45,6 +45,11 @@ def build_dict(csv_text):
         quality = int(qm.group(1)) if qm else 0
         tip = js
         slot = next((s for s in SLOTS if f">{s}<" in tip), "")
+        # shields carry the "Off Hand" equip location but a "Shield" armor
+        # subtype; surface them as Shield so they're distinguishable (and so
+        # mages — who can't use them — don't pick them up below).
+        if ">Shield<" in tip:
+            slot = "Shield"
         tags = set()
         cm = re.search(r"Classes:\s*(.*?)(?:</td>|<br|</span></?(?:td|tr))", tip)
         if cm:
