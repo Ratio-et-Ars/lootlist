@@ -108,11 +108,12 @@ function whLink(it){
   if(it.wowhead_id>0) return `<a href="https://www.wowhead.com/tbc/item=${it.wowhead_id}" data-wowhead="item=${it.wowhead_id}&domain=tbc" onclick="event.preventDefault()">${esc(it.name)}</a>`;
   return esc(it.name);
 }
-// small out-link to Wowhead on the right of a row. stopPropagation so it
-// opens in a new tab instead of toggling the row's wishlist state.
+// small out-link to Wowhead on the right of a row. A <button>, not an <a>,
+// so power.js doesn't auto-iconize it (it adds an icon to any wowhead link).
+// stopPropagation so it opens a new tab instead of toggling the row.
 function whIcon(id){
   if(!(id>0)) return "";
-  return `<a class="whout" href="https://www.wowhead.com/tbc/item=${id}" target="_blank" rel="noopener" onclick="event.stopPropagation()" title="Open on Wowhead">↗</a>`;
+  return `<button class="whout" onclick="event.stopPropagation();window.open('https://www.wowhead.com/tbc/item=${id}','_blank','noopener')" title="Open on Wowhead">↗</button>`;
 }
 function byBoss(list){ const g={}; list.forEach(i=>{(g[i.boss||"—"] ||= []).push(i)}); return g; }
 function wh(){ if(window.$WowheadPower) window.$WowheadPower.refreshLinks(); }
