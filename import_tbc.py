@@ -63,11 +63,14 @@ def build_dict(csv_text):
         quality = int(qm.group(1)) if qm else 0
         tip = js
         slot = next((s for s in SLOTS if f">{s}<" in tip), "")
-        # shields carry the "Off Hand" equip location but a "Shield" armor
-        # subtype; surface them as Shield so they're distinguishable (and so
-        # mages — who can't use them — don't pick them up below).
+        # Some items' equip LOCATION hides their real kind: shields sit in the
+        # "Off Hand" slot and wands in the "Ranged" slot. Re-label by the armor/
+        # weapon SUBTYPE so they're categorized right (and so mages correctly
+        # get wands but not shields).
         if ">Shield<" in tip:
             slot = "Shield"
+        elif ">Wand<" in tip:
+            slot = "Wand"
         tags = set()
         cm = re.search(r"Classes:\s*(.*?)(?:</td>|<br|</span></?(?:td|tr))", tip)
         if cm:
