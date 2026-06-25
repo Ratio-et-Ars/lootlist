@@ -92,7 +92,9 @@ const $ = s => document.querySelector(s);
 let items=[], stats={}, progress=[], catalog=[],
     raid = localStorage.raid || "Karazhan",
     mode = "manage",            // manage | raid | progress
-    browseFilter = "all", browseQuery = "";
+    roleFilter = "all",         // all | mage | caster | <class>  (from tags)
+    typeFilter = "all",         // all | trinket | weapon | …      (from slot)
+    browseQuery = "";
 
 const RAIDS = ["Karazhan","Gruul's Lair","Magtheridon's Lair","Serpentshrine Cavern","Tempest Keep","Hyjal Summit","Black Temple","Zul'Aman","Sunwell Plateau"];
 const api = (m,u,b)=>fetch(u,{method:m,headers:{'Content-Type':'application/json'},body:b?JSON.stringify(b):undefined}).then(r=>r.json());
@@ -188,13 +190,17 @@ const SLOTCAT = {
   "Hands":"hands","Waist":"waist","Legs":"legs","Feet":"feet"
 };
 const slotCat = s => SLOTCAT[s] || "";
-const chipBtn = t => `<button class="chip ${t===browseFilter?'active':''}" onclick="setFilter('${t}')">${t}</button>`;
+const chipBtn = (t,active,fn) => `<button class="chip ${active?'active':''}" onclick="${fn}('${t}')">${t}</button>`;
+// role (tags) and type (slot) filters stack — e.g. mage + trinket.
 function matchFilter(c){
-  if(browseFilter==="all") return true;
   const tags = (c.tags||"").split(",").map(s=>s.trim());
-  // mages can't equip shields — never surface them under the mage filter
-  if(browseFilter==="mage") return tags.includes("mage") && slotCat(c.slot)!=="shield";
-  return tags.includes(browseFilter) || slotCat(c.slot)===browseFilter;
+  if(roleFilter!=="all"){
+    if(!tags.includes(roleFilter)) return false;
+    // mages can't equip shields — never surface them under the mage filter
+    if(roleFilter==="mage" && slotCat(c.slot)==="shield") return false;
+  }
+  if(typeFilter!=="all" && slotCat(c.slot)!==typeFilter) return false;
+  return true;
 }
 function browseHTML(){
   const forRaid = catalog.filter(c=>c.raid===raid);
@@ -203,10 +209,10 @@ function browseHTML(){
     (c.tags||"").split(",").forEach(t=>{t=t.trim(); if(t)tagset.add(t)});
     const sc = slotCat(c.slot); if(sc) typeset.add(sc);
   });
-  const tagChips = ["all", ...[...tagset].sort()];
-  let h = `<div class="chips">`+tagChips.map(chipBtn).join("")+`</div>`;
-  const typeChips = [...typeset].sort();
-  if(typeChips.length) h += `<div class="chips types">`+typeChips.map(chipBtn).join("")+`</div>`;
+  const roleChips = ["all", ...[...tagset].sort()];
+  let h = `<div class="chips">`+roleChips.map(t=>chipBtn(t, t===roleFilter, 'setRole')).join("")+`</div>`;
+  const typeChips = ["all", ...[...typeset].sort()];
+  if(typeChips.length>1) h += `<div class="chips types">`+typeChips.map(t=>chipBtn(t, t===typeFilter, 'setType')).join("")+`</div>`;
   const q = browseQuery.trim().toLowerCase();
   const have = new Set(items.map(i=>i.raid+'|'+i.name));
   const shown = forRaid.filter(c => matchFilter(c) && (!q || c.name.toLowerCase().includes(q)));
@@ -224,7 +230,8 @@ function browseHTML(){
   return h;
 }
 function paintBrowse(){ const el=$("#browseArea"); if(el){ el.innerHTML=browseHTML(); wh(); } }
-function setFilter(t){ browseFilter=t; paintBrowse(); }
+function setRole(t){ roleFilter=t; paintBrowse(); }
+function setType(t){ typeFilter=t; paintBrowse(); }
 function browseSearch(v){ browseQuery=v; paintBrowse(); }
 
 function renderProgress(){

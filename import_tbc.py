@@ -19,6 +19,24 @@ SLOTS = ("Head","Neck","Shoulder","Back","Chest","Wrist","Hands","Waist","Legs",
          "Feet","Finger","Trinket","Main Hand","Off Hand","One-Hand","Two-Hand",
          "Ranged","Wand","Relic","Held In Off-hand","Thrown","Shield")
 
+ARMOR_SLOTS = {"Head", "Shoulder", "Chest", "Wrist", "Hands", "Waist", "Legs", "Feet"}
+
+def mage_usable(slot, tip, cloth):
+    """A caster item a MAGE can actually equip. Mages wear only cloth and
+    wield only daggers, one-hand swords, staves, and wands — no maces, axes,
+    polearms, two-hand swords, shields, or off-hand weapons (no dual-wield)."""
+    if not slot:
+        return True                       # tier tokens etc. — no equip slot
+    if slot in ARMOR_SLOTS:
+        return cloth
+    if slot in {"Trinket", "Finger", "Neck", "Back", "Held In Off-hand", "Wand"}:
+        return True
+    if slot in {"Main Hand", "One-Hand"}:
+        return ">Sword<" in tip or ">Dagger<" in tip
+    if slot == "Two-Hand":
+        return ">Staff<" in tip
+    return False                          # Off Hand weapon, Shield, Ranged, Thrown, Relic
+
 def fetch(url):
     print("  fetch", url.split("/")[-1], "...", flush=True)
     return urllib.request.urlopen(url, timeout=60).read().decode("utf-8", "replace")
@@ -63,11 +81,7 @@ def build_dict(csv_text):
         cloth = ">Cloth<" in tip
         if caster:
             tags.add("caster")
-            # a mage wants: cloth caster armor, OR any caster non-armor
-            # (weapon/wand/trinket/ring/neck/cloak/off-hand) — but NOT a
-            # shield, which mages cannot equip.
-            armor_slots = {"Head", "Shoulder", "Chest", "Wrist", "Hands", "Waist", "Legs", "Feet"}
-            if (slot not in armor_slots or cloth) and slot != "Shield":
+            if mage_usable(slot, tip, cloth):
                 tags.add("mage")
         d[iid] = (name, quality, slot, ",".join(sorted(tags)))
     return d
