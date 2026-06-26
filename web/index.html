@@ -35,8 +35,11 @@
   .row .name .slot{color:var(--dim);font-size:12px}
   .star{font-size:20px;background:none;border:none;padding:0 4px;color:#5a4f6e}
   .star.on{color:var(--gold)}
-  .pri{font-size:11px;border-radius:6px;padding:2px 7px;border:1px solid var(--line)}
+  .pri{font-size:11px;border-radius:6px;padding:2px 7px;border:1px solid var(--line);background:none;cursor:pointer;flex:0 0 auto}
   .pri1{color:#ff6b6b;border-color:#5a2a2a}.pri2{color:var(--gold);border-color:#5a4a2a}.pri3{color:var(--dim)}
+  .notein{display:block;width:100%;max-width:440px;margin-top:5px;padding:3px 8px;font-size:12.5px;background:#1b1626;border:1px solid var(--line);border-radius:6px;color:var(--dim)}
+  .notein:focus{color:var(--txt);border-color:var(--epic);outline:none}
+  .secbtn{float:right;text-transform:none;letter-spacing:0;font-size:11px;color:var(--good)}
   .mini{padding:4px 8px;font-size:12px;background:var(--panel2)}
   .note{color:var(--dim);font-size:12.5px;margin-top:2px}
   .sr-card{margin:8px 0 4px;background:linear-gradient(180deg,#241a16,#1d1812);border:1px solid var(--gold);border-radius:12px;padding:14px 16px}
@@ -95,6 +98,7 @@ const $ = s => document.querySelector(s);
 let items=[], stats={}, progress=[], catalog=[],
     raid = localStorage.raid || "Karazhan",
     mode = "manage",            // manage | raid | progress
+    showGot = false,            // show obtained items in the wishlist
     roleFilter = "all",         // all | mage | caster | <class>  (from tags)
     typeFilter = "all",         // all | trinket | weapon | …      (from slot)
     browseQuery = "";
@@ -166,24 +170,38 @@ function renderRaid(){
 }
 
 /* ---- MANAGE: wishlist on top, browse catalog below ---- */
+// one wishlist row: reserve star, name + editable note, click-to-cycle
+// priority, wowhead out-link, got/undo, delete.
+function wishRow(it){
+  const gotten = it.status==='got';
+  return `<div class="row ${gotten?'got':''}">
+    <button class="star ${it.reserved?'on':''}" onclick="toggleSR(${it.id},${!it.reserved})" title="reserve">★</button>
+    <div class="name">${whLink(it)} <span class="slot">${esc(it.slot)}</span>
+      <input class="notein" value="${esc(it.note)}" placeholder="+ add note" onclick="event.stopPropagation()" onchange="saveNote(${it.id},this.value)"></div>
+    <button class="pri pri${it.priority}" onclick="cyclePri(${it.id},${it.priority})" title="click to change priority">P${it.priority}</button>
+    ${whIcon(it.wowhead_id)}
+    ${gotten ? `<button class="mini" onclick="ungot(${it.id})" title="move back to wishlist">undo</button>`
+             : `<button class="mini" onclick="markGot(${it.id})">got</button>`}
+    <button class="mini" onclick="delItem(${it.id})">✕</button></div>`;
+}
 function renderManage(){
   const mine = items.filter(i=>i.raid===raid);
-  let h = `<h2 class="sec">★ Your Wishlist — ${esc(raid)}</h2>`;
-  if(!mine.length) h += `<p class="muted">Nothing yet — add from the catalog below.</p>`;
+  const active = mine.filter(i=>i.status!=='got');
+  const got = mine.filter(i=>i.status==='got');
+  let h = `<h2 class="sec">★ Your Wishlist — ${esc(raid)}`;
+  if(got.length) h += `<button class="mini secbtn" onclick="toggleShowGot()">${showGot?'hide':'show'} ${got.length} got ✓</button>`;
+  h += `</h2>`;
+  if(!active.length) h += `<p class="muted">${got.length?'All wishlisted items obtained 🎉':'Nothing yet'} — add from the catalog below.</p>`;
   else {
-    const g = byBoss(mine);
+    const g = byBoss(active);
     for(const boss of Object.keys(g)){
       h += `<div class="boss">${esc(boss)}</div>`;
-      for(const it of g[boss]){
-        h += `<div class="row ${it.status==='got'?'got':''}">
-          <button class="star ${it.reserved?'on':''}" onclick="toggleSR(${it.id},${!it.reserved})" title="reserve">★</button>
-          <div class="name">${whLink(it)} <span class="slot">${esc(it.slot)}</span>${it.note?`<div class="note">${esc(it.note)}</div>`:""}</div>
-          <span class="pri pri${it.priority}">P${it.priority}</span>
-          ${whIcon(it.wowhead_id)}
-          ${it.status==='got'?'<span class="muted">got ✓</span>':`<button class="mini" onclick="markGot(${it.id})">got</button>`}
-          <button class="mini" onclick="delItem(${it.id})">✕</button></div>`;
-      }
+      for(const it of g[boss]) h += wishRow(it);
     }
+  }
+  if(showGot && got.length){
+    h += `<div class="boss" style="color:var(--good)">Already got ✓</div>`;
+    for(const it of got) h += wishRow(it);
   }
   h += `<h2 class="sec">Browse — ${esc(raid)}</h2>`;
   h += `<input class="search" id="q" placeholder="search this raid…" value="${esc(browseQuery)}" oninput="browseSearch(this.value)">`;
@@ -278,7 +296,12 @@ async function addProgress(){
 
 async function toggleSR(id,on){ await api('PATCH','/api/items/'+id,{reserved:on}); await load(); }
 async function markGot(id){ await api('POST','/api/items/'+id+'/got'); await load(); }
+async function ungot(id){ await api('PATCH','/api/items/'+id,{status:'wanted'}); await load(); }
 async function delItem(id){ if(confirm('Delete?')){ await api('DELETE','/api/items/'+id); await load(); } }
+function toggleShowGot(){ showGot=!showGot; render(); }
+// note saves in place (no re-render) so focus/scroll don't jump while typing.
+async function saveNote(id,val){ await api('PATCH','/api/items/'+id,{note:val}); const it=items.find(x=>x.id===id); if(it) it.note=val; }
+async function cyclePri(id,cur){ await api('PATCH','/api/items/'+id,{priority:cur>=3?1:cur+1}); await load(); }
 async function clearSR(){ await api('POST','/api/reserves/clear?raid='+encodeURIComponent(raid)); await load(); }
 async function toggleWish(c){
   // anchor the clicked row's viewport position so the page doesn't jump
